@@ -3,7 +3,7 @@ use std::io::Error;
 use std::str::FromStr;
 use std::net::AddrParseError;
 
-extern crate clock_ticks;
+extern crate time;
 extern crate rand;
 
 
@@ -155,13 +155,11 @@ impl Client {
     ///   # Your code here.
     /// });
     /// ```
-    pub fn time<F>(&mut self, metric: &str, callable: F)
-        where F: Fn()
-    {
-        let start = clock_ticks::precise_time_ms();
+    pub fn time<F>(&mut self, metric: &str, callable: F) where F : Fn() {
+        let start = time::precise_time_ns();
         callable();
-        let end = clock_ticks::precise_time_ms();
-        let data = format!("{}.{}:{}|ms", self.prefix, metric, end - start);
+        let end = time::precise_time_ns();
+        let data = format!("{}.{}:{}|ms", self.prefix, metric, (end - start) / 1_000_000);
         self.send(data);
     }
 
@@ -276,5 +274,21 @@ mod test {
 
         let response = server_recv(server);
         assert_eq!("myapp.metric:21.39|ms", response);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_sending_timed_callback() {
+        let host = next_test_ip4();
+        let server = make_server(host.as_ref());
+        let mut client = Client::new(host.as_ref(), "myapp").unwrap();
+
+        client.time("metric", || thread::sleep_ms(100));
+        let response = server_recv(server);
+
+        // This doesn't actually work; the thread::sleep method may or
+        // may not actually sleep for the required 100ms. We should
+        // probably match this against a regex.
+        assert_eq!("myapp.metric:100|ms", response);
     }
 }
