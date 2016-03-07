@@ -179,6 +179,7 @@ mod test {
     use self::rand::distributions::{IndependentSample, Range};
     use std::str;
     use std::thread;
+    use std::time::Duration;
 
     static PORT: u16 = 8125;
 
@@ -283,7 +284,7 @@ mod test {
         let server = make_server(host.as_ref());
         let mut client = Client::new(host.as_ref(), "myapp").unwrap();
 
-        client.time("metric", || thread::sleep_ms(100));
+        client.time("metric", || thread::sleep(Duration::from_millis(100)));
         let response = server_recv(server);
 
         // This doesn't actually work; the thread::sleep method may or
