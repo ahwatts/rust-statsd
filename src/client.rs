@@ -1,7 +1,9 @@
-use std::net::{UdpSocket, SocketAddr};
-use std::io::Error;
-use std::str::FromStr;
+use std::error::Error;
+use std::fmt;
+use std::io;
 use std::net::AddrParseError;
+use std::net::{UdpSocket, SocketAddr};
+use std::str::FromStr;
 use std::time::Instant;
 
 extern crate rand;
@@ -9,8 +11,28 @@ extern crate rand;
 
 #[derive(Debug)]
 pub enum StatsdError {
-    IoError(Error),
+    IoError(io::Error),
     AddrParseError(String),
+}
+
+impl Error for StatsdError {
+    fn description(&self) -> &str {
+        use self::StatsdError::*;
+        match self {
+            &IoError(ref ioe) => ioe.description(),
+            &AddrParseError(ref ape) => ape,
+        }
+    }
+}
+
+impl fmt::Display for StatsdError {
+    fn fmt(&self, out: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        use self::StatsdError::*;
+        match self {
+            &IoError(ref ioe) => fmt::Display::fmt(ioe, out),
+            &AddrParseError(ref ape) => fmt::Display::fmt(ape, out),
+        }
+    }
 }
 
 impl From<AddrParseError> for StatsdError {
@@ -19,8 +41,8 @@ impl From<AddrParseError> for StatsdError {
     }
 }
 
-impl From<Error> for StatsdError {
-    fn from(err: Error) -> StatsdError {
+impl From<io::Error> for StatsdError {
+    fn from(err: io::Error) -> StatsdError {
         StatsdError::IoError(err)
     }
 }
