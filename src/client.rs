@@ -2,8 +2,8 @@ use std::net::{UdpSocket, SocketAddr};
 use std::io::Error;
 use std::str::FromStr;
 use std::net::AddrParseError;
+use std::time::Instant;
 
-extern crate time;
 extern crate rand;
 
 
@@ -156,10 +156,12 @@ impl Client {
     /// });
     /// ```
     pub fn time<F>(&mut self, metric: &str, callable: F) where F : Fn() {
-        let start = time::precise_time_ns();
+        let start = Instant::now();
         callable();
-        let end = time::precise_time_ns();
-        let data = format!("{}.{}:{}|ms", self.prefix, metric, (end - start) / 1_000_000);
+        let end = Instant::now();
+        let duration = end - start;
+        let duration_millis = ((duration.as_secs() as f64 + (duration.subsec_nanos() as f64 / 1_000_000_000_f64)) * 1_000_f64).round();
+        let data = format!("{}.{}:{}|ms", self.prefix, metric, duration_millis);
         self.send(data);
     }
 
